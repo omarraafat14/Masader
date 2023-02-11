@@ -10,11 +10,9 @@ Masader is a backend Learning management system that aims to provide a comprehen
 
 3. Enrollment and Progress Tracking: Students can enroll in courses, and their progress is tracked through the completion of assignments, quizzes, and exams.
 
-4. Communication and Collaboration: Masader provides a platform for students and instructors to communicate and collaborate through forums, messaging, and other tools.
+4. Reporting and Analytics: The system generates reports and analytics on student performance, course completion rates, and other metrics, which can be used to improve the overall quality of the learning experience.
 
-5. Reporting and Analytics: The system generates reports and analytics on student performance, course completion rates, and other metrics, which can be used to improve the overall quality of the learning experience.
-
-6. Mobile Support: Masader is built to be mobile-responsive, allowing students and instructors to access the platform from their mobile devices.
+5. Mobile Support: Masader is built to be mobile-responsive, allowing students and instructors to access the platform from their mobile devices.
 
 ## Technical Details
 
