@@ -16,12 +16,16 @@ Masader is a backend Learning management system that aims to provide a comprehen
 
 6. Mobile Support: Masader is built to be mobile-responsive, allowing students and instructors to access the platform from their mobile devices.
 
+## Technical Details
 
-The project is built using the Django framework and has several models such as Category, Course, Chapter, Video, Order, Cart, etc. to support the functionalities of the platform. 
-The project provides an effective way to manage the learning process, allowing users to easily access and manage course content and orders.
+- The project is built using the Django framework and has several models such as Category, Course, Chapter, Video, Order, Cart, etc. to support the functionalities of the platform. 
 
-The project uses several advanced techniques such as filtering and sorting, searching, pagination, throttling, and token-based authentication using the third-party package Djoser.
+- The project provides an effective way to manage the learning process, allowing users to easily access and manage course content and orders.
 
-The system is highly secure, with strict user authentication and authorization processes in place to ensure the privacy and protection of student data. Additionally, the use of Django and DRF makes it easy to maintain, scale, and add new features in the future.
+- The project uses several advanced techniques such as filtering and sorting, searching, pagination, throttling, and token-based authentication using the third-party package Djoser.
 
-Overall, Masader provides a comprehensive solution for educational institutions and trainers looking to manage their online learning programs in a flexible, secure, and scalable manner.
+- The system is highly secure, with strict user authentication and authorization processes in place to ensure the privacy and protection of student data. Additionally, the use of Django and DRF makes it easy to maintain, scale, and add new features in the future.
+
+## Conclusion
+
+- Overall, Masader provides a comprehensive solution for educational institutions and trainers looking to manage their online learning programs in a flexible, secure, and scalable manner.
