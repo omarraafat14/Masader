@@ -1,14 +1,23 @@
 from rest_framework import serializers
 from .models import *
 from rest_framework import status
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueValidator,UniqueTogetherValidator
 from django.contrib.auth.password_validation import validate_password
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'title', 'slug']
+
 
 # Create Insreuctor Serializer 
 class CourseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = '__all__'
+  category = CategorySerializer(read_only=True)
+  class Meta:
+      model = Course
+      fields = '__all__'
+
 
 # Create Insreuctor Serializer 
 class InstructorSerializer(serializers.ModelSerializer):
@@ -20,45 +29,76 @@ class InstructorSerializer(serializers.ModelSerializer):
         )
 
     def get_courses(self,obj):
-        courses = obj.courses.all()
+        courses = obj.objects.all()
         return CourseSerializer(courses,many=True).data
+
+# Serializer to get Chapter Details
+class ChapterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chapter
+        fields = '__all__'
+
+
+class RatingSerializer(serializers.ModelSerializer): 
+    class Meta:
+        model = Rating
+        fields = ['user', 'course', 'rating']
+        # validators = [UniqueTogetherValidator(queryset=Rating.objects.all(), fields=['user', 'course'])]
+        # extra_kwargs = {
+        #     'rating': {'min_value': 0, 'max_value': 5},
+        # }
+
+
+
+# Serializer to get Chapter Details
+class VideoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
+        fields = '__all__'
+
+
+# Serializer to get Chapter Details
+class FAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQ
+        fields = '__all__'
 
 #Serializer to Get User Details using Django Token Authentication
 class UserSerializer(serializers.ModelSerializer):
-  class Meta:
-    model = User
-    fields = ["id", "first_name", "last_name", "username"]
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'first_name','last_name', 'email'
+        ]
 
 
-#Serializer to Register User
-class RegisterSerializer(serializers.ModelSerializer):
-  email = serializers.EmailField(
-    required=True,
-    validators=[UniqueValidator(queryset=User.objects.all())]
-  )
-  password = serializers.CharField(
-    write_only=True, required=True, validators=[validate_password])
-  password2 = serializers.CharField(write_only=True, required=True)
-  class Meta:
-    model = User
-    fields = ('username', 'password', 'password2',
-         'email', 'first_name', 'last_name')
-    extra_kwargs = {
-      'first_name': {'required': True},
-      'last_name': {'required': True}
-    }
-  def validate(self, attrs):
-    if attrs['password'] != attrs['password2']:
-      raise serializers.ValidationError(
-        {"password": "Password fields didn't match."})
-    return attrs
-  def create(self, validated_data):
-    user = User.objects.create(
-      username=validated_data['username'],
-      email=validated_data['email'],
-      first_name=validated_data['first_name'],
-      last_name=validated_data['last_name']
-    )
-    user.set_password(validated_data['password'])
-    user.save()
-    return user
+
+class CartSerializer(serializers.ModelSerializer):
+    # total_price = serializers.SerializerMethodField()
+    course_price= serializers.SerializerMethodField()
+    # user = UserSerializer(read_only=True)
+    class Meta:
+        model = Cart
+        fields = ['id','user', 'course','course_price']
+        # read_only_fields = ['unit_price']
+
+    # def get_total_price(self,obj):
+    #     return float(obj.course.price * obj.quantity)
+    
+    def get_course_price(self,obj):
+        return obj.course.price
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields= '__all__'
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    order = OrderSerializer()
+    cart = CartSerializer()
+    class Meta:
+        model = OrderItem
+        fields = ['order','course','cart']
+        

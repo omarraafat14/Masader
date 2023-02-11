@@ -1,17 +1,18 @@
 from django.urls import path , include
 from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken.views import obtain_auth_token
 from . import views
 
 router = DefaultRouter()
-router.register("courses" , views.viewsete_courses)
-router.register("instructors", views.InstructorViewset)
+router.register('courses',views.CourseViewset)
+router.register('groups/manager/users', views.ManagerViewSet)
+router.register('groups/instructor/users', views.InstructorViewSet)
+router.register('cart/course-items', views.CartViewSet)
+router.register('orders', views.OrderViewSet,basename = 'orders')
+router.register('order-items', views.OrderViewSet, basename='order-items')
+
+
 
 urlpatterns = [
-    # path('courses' , views.mixins_list.as_view() , name = 'list'),
-    # path('courses/<int:pk>' , views.mixins_pk.as_view() , name = 'pk')
-    path('api/' , include(router.urls)),
-    path('token' , obtain_auth_token),
-    path("get-details",views.UserDetailAPI.as_view()),
-    path('register',views.RegisterUserAPIView.as_view()),
+    path('', include(router.urls)),
+    path('ratings', views.RatingsView.as_view()),
 ]
