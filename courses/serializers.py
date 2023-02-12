@@ -74,19 +74,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CartSerializer(serializers.ModelSerializer):
-    # total_price = serializers.SerializerMethodField()
-    course_price= serializers.SerializerMethodField()
-    # user = UserSerializer(read_only=True)
     class Meta:
         model = Cart
-        fields = ['id','user', 'course','course_price']
-        # read_only_fields = ['unit_price']
-
-    # def get_total_price(self,obj):
-    #     return float(obj.course.price * obj.quantity)
-    
-    def get_course_price(self,obj):
-        return obj.course.price
+        # fields = ['id','user', 'course','course_price', 'total_price']
+        exclude = ['user']
 
 
 class OrderSerializer(serializers.ModelSerializer):

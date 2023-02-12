@@ -83,11 +83,14 @@ class Video(models.Model):
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    course_price = models.DecimalField(max_digits=6, decimal_places=2)
-    total_price = models.DecimalField(max_digits=6, decimal_places=2)
+    course_price = models.DecimalField(max_digits=6, decimal_places=2,default=1.0)
+    total_price = models.DecimalField(max_digits=6, decimal_places=2,default=1.0)
 
     class Meta:
         unique_together = ('course', 'user')
+
+    def __str__(self):
+        return self.user.username
 
 
 class Order(models.Model):

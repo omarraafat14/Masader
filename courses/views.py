@@ -19,7 +19,6 @@ class CourseViewset(viewsets.ModelViewSet):
     throttle_classes = [UserRateThrottle,AnonRateThrottle]
     ordering_fields=['rating']
     search_fields = ['title']
-
     
     def get_permissions(self):
         permission_classes = []
@@ -32,15 +31,18 @@ class ChapterViewset(viewsets.ModelViewSet):
     queryset = Chapter.objects.all()
     serializer_class = ChapterSerializer
     throttle_classes = [UserRateThrottle,AnonRateThrottle]
-    
+
+
 class VideoViewset(viewsets.ModelViewSet):
     queryset = Video.objects.all()
     serializer_class = VideoSerializer
     throttle_classes = [UserRateThrottle,AnonRateThrottle]
 
+
 class FAQViewset(viewsets.ModelViewSet):
     queryset = FAQ.objects.all()
     serializer_class = FAQSerializer
+
 
 class RatingsView(generics.ListCreateAPIView):
     queryset = Rating.objects.all()
@@ -54,6 +56,7 @@ class RatingsView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return Rating.objects.all().filter(user = self.request.user)
+
 
 class ManagerViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(groups__name='Manager')
@@ -77,20 +80,20 @@ class ManagerViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    def destroy(self, request, *args, **kwargs):
-        username = request.data.get('username')
-        if username:
-            user = get_object_or_404(User, username=username)
-            manager_group = Group.objects.get(name='Manager')
-            manager_group.user_set.remove(user)
-            return Response(
-                data = {'message': 'Manager has been deleted.'},
-                status=status.HTTP_200_OK
-            )
-        return Response(
-            data = {"message":"Error"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    # def destroy(self, request, *args, **kwargs):
+    #     username = request.data.get('username')
+    #     if username:
+    #         user = get_object_or_404(User, username=username)
+    #         manager_group = Group.objects.get(name='Manager')
+    #         manager_group.user_set.remove(user)
+    #         return Response(
+    #             data = {'message': 'Manager has been deleted.'},
+    #             status=status.HTTP_200_OK
+    #         )
+    #     return Response(
+    #         data = {"message":"Error"},
+    #         status=status.HTTP_400_BAD_REQUEST
+    #     )
 
 
 class InstructorViewSet(viewsets.ModelViewSet):
@@ -124,7 +127,6 @@ class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
     permission_classes = [IsStudent]
-    throttle_classes = [UserRateThrottle,AnonRateThrottle]
 
     def get_queryset(self):
         return Cart.objects.all().filter(user = self.request.user)
@@ -134,29 +136,38 @@ class CartViewSet(viewsets.ModelViewSet):
         serialized_item.is_valid(raise_exception=True)
 
         id = request.data['course']
-        cart = Cart.objects.filter(user=request.user)
-        course_prices = [course.price for course in cart.courses.all()]
-        total_price = sum(course_prices)
-
         item = get_object_or_404(Course, id=id)
         course_price = item.price
+        cart = Cart.objects.filter(user=request.user)
+        course_prices = [course.course_price for course in cart]
+        total_price = sum(course_prices)
         try:
-            Cart.objects.create(user=request.user,  course_id=id, course_price=course_price, total_price=total_price,)
+            Cart.objects.create(
+                user=request.user,  
+                course_id=id, 
+                course_price=course_price, 
+                total_price=total_price
+                )
         except:
-            return Response(status=status.HTTP_409_CONFLICT, data={'message': 'Item already in cart'})
-        return Response(status=status.HTTP_201_CREATED, data={'message':'Item added to cart!'})
+            return Response(status=status.HTTP_409_CONFLICT, data={'message': 'Course already in cart'})
+        return Response(status=status.HTTP_201_CREATED, data={'message':'Course added to cart!'})
+
+
 
     def destroy(self, request, *arg, **kwargs):
-        if request.data['course']:
+        if request.data['menuitem']:
             serialized_item = CartSerializer(data=request.data)
             serialized_item.is_valid(raise_exception=True)
-            course = request.data['course']
-            cart = get_object_or_404(Cart, user=request.user, course=course)
+            menuitem = request.data['menuitem']
+            cart = get_object_or_404(Cart, user=request.user, menuitem=menuitem )
             cart.delete()
-            return Response(status=status.HTTP_200_OK, data={'message':'Course removed from cart'})
+            return Response(status=status.HTTP_200_OK, data={'message':'Item removed from cart'})
         else:
             Cart.objects.filter(user=request.user).delete()
-            return Response(status=status.HTTP_201_CREATED, data={'message':'All Courses removed from cart'})
+            return Response(status=status.HTTP_201_CREATED, data={'message':'All Items removed from cart'})
+
+
+
 
 
 class OrderViewSet(viewsets.ViewSet):

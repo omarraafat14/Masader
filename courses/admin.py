@@ -2,9 +2,13 @@ from django.contrib import admin
 from .models import *
 
 # Register Course model.
+
+admin.site.register(Category)
+
+# Register Course model.
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['id','title', 'price']
+    list_display = ['id','title','category','price']
     search_fields = ['title']
     list_filter = ['title' , 'price']
 
@@ -16,7 +20,10 @@ class InstructorAdmin(admin.ModelAdmin):
     list_filter = ['name', 'students']
 
 # Register Chapter model.
-admin.site.register(Chapter)
+@admin.register(Chapter)
+class ChapterAdmin(admin.ModelAdmin):
+    list_display = ['id','title', 'course']
+    search_fields = ['course']
 
 # Register video model.
 admin.site.register(Video)
