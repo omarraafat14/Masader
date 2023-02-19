@@ -1,15 +1,20 @@
 from datetime import date
-from django.shortcuts import render, get_object_or_404
-from rest_framework import generics , mixins , viewsets 
+from decouple import config
+import requests
+
 from .models import *
 from .serializers import *
 from .permissions import *
 from .throttles import *
-from rest_framework.response import Response
+
 from django.contrib.auth.models import User
+from django.shortcuts import render, get_object_or_404, redirect
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import generics , mixins , viewsets 
 
 
 # Create Viewsets endpoint
@@ -123,6 +128,78 @@ class InstructorViewSet(viewsets.ModelViewSet):
         )
 
 
+class PaymentView(APIView):
+    def get(self, request):
+        # Call first endpoint to get auth token
+        api_key = config("API_KEY")
+        headers = {"content-type": "application/json"}
+        data = {
+            "api_key": api_key,
+        }
+        response = requests.post("https://accept.paymob.com/api/auth/tokens", headers=headers, json=data)
+        # print("response from step 1:", response.content)
+        if response.status_code != 201:
+            return Response({"error": "Failed to get auth token"}, status=response.status_code)
+        token = response.json()["token"]
+
+        # Call second endpoint to get order ID
+        delivery_needed = "false"  # or True
+        amount_cents = "100"  # replace with the actual amount in cents
+        items = []  # replace with the actual items
+        headers = {"content-type": "application/json", }
+        data = {
+            "auth_token": token,
+            "delivery_needed": delivery_needed, 
+            "amount_cents": amount_cents, 
+            "items": items,
+        }
+        response = requests.post("https://accept.paymob.com/api/ecommerce/orders", headers=headers, json=data)
+        # print("response from step 2:" , response.content)
+        if response.status_code != 201:
+            return Response({"error": "Failed to create order"}, status=response.status_code)
+        order_id = response.json()["id"]
+
+        # Call third endpoint to get payment key
+        amount_cents = 100  # replace with the actual amount in cents
+        expiration = 3600  # replace with the actual expiration time in seconds
+        billing_data = {  # replace with the actual billing data
+            "apartment": "NA", 
+            "email": "claudette09@exa.com", 
+            "floor": "NA", 
+            "first_name": "Clifford", 
+            "street": "NA", 
+            "building": "NA", 
+            "phone_number": "+86(8)9135210487", 
+            "shipping_method": "NA", 
+            "postal_code": "NA", 
+            "city": "NA", 
+            "country": "NA", 
+            "last_name": "Nicolas", 
+            "state": "NA",
+        }
+        currency = "EGP"  # replace with the actual currency code
+        integration_id = 3384964  # replace with the actual integration ID
+        headers = {"content-type": "application/json",}        
+        data = {
+        "auth_token": token,
+        "amount_cents": str(amount_cents), 
+        "expiration": expiration,
+        "order_id": str(order_id),
+        "billing_data": billing_data,
+        "currency": currency, 
+        "integration_id": integration_id,
+        }
+        response = requests.post("https://accept.paymob.com/api/acceptance/payment_keys", headers=headers, json=data)
+        # print("Response from step 3:", response.content)
+        if response.status_code != 201:
+            return Response({"error": "Failed to get payment key"}, status=response.status_code)
+        payment_key = response.json()["token"]
+
+        # Return the payment key
+        return redirect(f'https://accept.paymob.com/api/acceptance/iframes/730926?payment_token={payment_key}')
+        # return Response({"payment_key": payment_key})
+
+
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
@@ -151,8 +228,6 @@ class CartViewSet(viewsets.ModelViewSet):
         except:
             return Response(status=status.HTTP_409_CONFLICT, data={'message': 'Course already in cart'})
         return Response(status=status.HTTP_201_CREATED, data={'message':'Course added to cart!'})
-
-
 
     def destroy(self, request, *arg, **kwargs):
         if request.data['menuitem']:

@@ -15,4 +15,5 @@ router.register('order-items', views.OrderViewSet, basename='order-items')
 urlpatterns = [
     path('', include(router.urls)),
     path('ratings', views.RatingsView.as_view()),
+    path('payment', views.PaymentView.as_view()),
 ]
