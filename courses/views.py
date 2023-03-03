@@ -200,54 +200,86 @@ class PaymentView(APIView):
         # return Response({"payment_key": payment_key})
 
 
-class CartViewSet(viewsets.ModelViewSet):
-    queryset = Cart.objects.all()
+
+class CartView(generics.RetrieveUpdateAPIView):
+    """represent a single model instance."""
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        """Returns an object instance that should be used for detail views."""
+        cart, created = Cart.objects.get_or_create(user=self.request.user)
+        return cart
+    
+
+
+class AddToCartView(generics.CreateAPIView):
     serializer_class = CartSerializer
     permission_classes = [IsStudent]
 
-    def get_queryset(self):
-        return Cart.objects.all().filter(user = self.request.user)
+    def post(self, request, *arg, **kwargs):
+        course_id = request.data.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, course=course)
+        cart_item.save()
+        serializer = CartItemSerializer(cart_item)
+        return Response(serializer.data)
 
-    def create(self, request, *arg, **kwargs):
-        serialized_item = CartSerializer(data=request.data)
-        serialized_item.is_valid(raise_exception=True)
-
-        id = request.data['course']
-        item = get_object_or_404(Course, id=id)
-        course_price = item.price
-        cart = Cart.objects.filter(user=request.user)
-        course_prices = [course.course_price for course in cart]
-        total_price = sum(course_prices)
-        try:
-            Cart.objects.create(
-                user=request.user,  
-                course_id=id, 
-                course_price=course_price, 
-                total_price=total_price
-                )
-        except:
-            return Response(status=status.HTTP_409_CONFLICT, data={'message': 'Course already in cart'})
-        return Response(status=status.HTTP_201_CREATED, data={'message':'Course added to cart!'})
-
-    def destroy(self, request, *arg, **kwargs):
-        if request.data['menuitem']:
+    def delete(self, request, *arg, **kwargs):
+        if request.data['course']:
             serialized_item = CartSerializer(data=request.data)
             serialized_item.is_valid(raise_exception=True)
-            menuitem = request.data['menuitem']
-            cart = get_object_or_404(Cart, user=request.user, menuitem=menuitem )
+            course = request.data['course']
+            cart = get_object_or_404(Cart, user=request.user, course=course )
             cart.delete()
-            return Response(status=status.HTTP_200_OK, data={'message':'Item removed from cart'})
+            return Response(status=status.HTTP_200_OK, data={'message':'course removed from cart'})
         else:
             Cart.objects.filter(user=request.user).delete()
-            return Response(status=status.HTTP_201_CREATED, data={'message':'All Items removed from cart'})
+            return Response(status=status.HTTP_201_CREATED, data={'message':'All courses removed from cart'})
 
 
-
-
-
-class OrderViewSet(viewsets.ViewSet):
-    queryset = OrderItem.objects.all()
+class CreateOrderView(generics.CreateAPIView):
     serializer_class = OrderSerializer
+    permission_classes = [IsStudent]
+    throttle_classes = [UserRateThrottle,AnonRateThrottle]
+
+    def post(self, request, *args, **kwargs):
+        cart = get_object_or_404(Cart, user=request.user)
+        order = Order(user=request.user, total=0)
+        order.save()
+        order_items = []
+        total = 0
+        for cart_item in cart.items.all():
+            order_item = OrderItem(
+                order=order,
+                course=cart_item.course,
+            )
+            order_items.append(order_item)
+            total += order_item.course.price
+        order.total = total
+        order.save()
+        OrderItem.objects.bulk_create(order_items)  # creates multiple objects of the OrderItem in a snigle query
+        cart.items.all().delete()
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+class DeleteOrderView(generics.UpdateAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsStudent]
+    throttle_classes = [UserRateThrottle,AnonRateThrottle]
+
+    def delete(self, request, *args, **kwargs):
+        order = Order.objects.get(pk=self.kwargs['pk'])
+        order_number = str(order.id)
+        order.delete()
+        return Response(status=200, data={'message':'Order #{} was deleted'.format(order_number)})
+
+
+class OrderListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    # queryset = OrderItem.objects.all()
+    permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle,AnonRateThrottle]
 
     def get_queryset(self):
@@ -258,68 +290,3 @@ class OrderViewSet(viewsets.ViewSet):
             return Order.objects.all().filter(user = user)
         else:
             return Order.objects.all()
-
-    def get_permissions(self):
-        permission_classes = []
-        if self.request.method in ['GET', 'POST']:
-            permission_classes = [IsStudent | IsManager | IsInstructor]
-        elif self.request.method == 'DELETE':
-            permission_classes = [IsManager]
-        elif self.request.method == 'PATCH':
-            permission_classes = [IsInstructor]
-        return [permission() for permission in permission_classes]
-
-    def create(self, request, *args, **kwargs):
-        cart = Cart.objects.filter(user = request.user)
-        lis = cart.values_list()
-        if len(lis) == 0:
-            return Response(data={"Error":"Cart is empty"},status=status.HTTP_400_BAD_REQUEST)
-        
-        total = sum([course.price for course in cart])
-        order = Order.objects.create(
-            user=request.user, 
-            total=total,
-            status=False, 
-            date=date.today()
-        )
-        for item in cart.values():
-            course = get_object_or_404(Course, id=item['course'])
-            orderitem = OrderItem.objects.create(
-                order=order, 
-                course=course, 
-            )
-            orderitem.save()
-        cart.delete()
-        return Response(status=201, data={'message':'Your order has been placed! Your order number is {}'.format(str(order.id))})
-
-
-class SingleOrderView(generics.ListCreateAPIView):
-    serializer_class = OrderItemSerializer
-    queryset = OrderItem.objects.all()
-    throttle_classes = [UserRateThrottle,AnonRateThrottle]
-    
-    def get_permissions(self):
-        order = Order.objects.get(pk=self.kwargs['pk'])
-        if self.request.user == order.user and self.request.method == 'GET':
-            permission_classes = [IsStudent]
-        elif self.request.method == 'PUT' or self.request.method == 'DELETE':
-            permission_classes = [IsStudent, IsManager]
-        else:
-            permission_classes = [IsStudent, IsInstructor | IsManager]
-        return[permission() for permission in permission_classes]
-
-    def get_queryset(self, *args, **kwargs):
-            return OrderItem.objects.filter(order_id=self.kwargs['pk'])
-
-    def patch(self, request, *args, **kwargs):
-        order = Order.objects.get(pk=self.kwargs['pk'])
-        order.status = not order.status
-        order.save()
-        return Response(status=200, data={'message':'Status of order #'+ str(order.id)+' changed to '+str(order.status)})
-
-
-    def delete(self, request, *args, **kwargs):
-        order = Order.objects.get(pk=self.kwargs['pk'])
-        order_number = str(order.id)
-        order.delete()
-        return Response(status=200, data={'message':'Order #{} was deleted'.format(order_number)})

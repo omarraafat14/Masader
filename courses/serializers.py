@@ -63,6 +63,7 @@ class FAQSerializer(serializers.ModelSerializer):
         model = FAQ
         fields = '__all__'
 
+
 #Serializer to Get User Details using Django Token Authentication
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,23 +74,37 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 
+class CartItemSerializer(serializers.ModelSerializer):
+    """Serializer for the CartItem model."""
+    course = CourseSerializer()
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'course']
+
+
 class CartSerializer(serializers.ModelSerializer):
+    """Serializer for the Cart model."""
+    items = CartItemSerializer(many=True, read_only=True)
+
     class Meta:
         model = Cart
-        # fields = ['id','user', 'course','course_price', 'total_price']
-        exclude = ['user']
-
-
-class OrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order
-        fields= '__all__'
+        fields = ['id', 'items']
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    order = OrderSerializer()
-    cart = CartSerializer()
+    """Serializer for the OrderItem model."""
+    course = CourseSerializer()
+
     class Meta:
         model = OrderItem
-        fields = ['order','course','cart']
-        
+        fields = ['id', 'course']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    """Serializer for the Order model."""
+    orders = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'total', 'created_at', 'orders']

@@ -45,6 +45,7 @@ class Course(models.Model):
     def __str__(self):
         return self.title
 
+
 class Instructor(models.Model):
     """Create database model of Instructor"""
     name = models.CharField(max_length= 50 , db_index=True)
@@ -61,6 +62,7 @@ class Instructor(models.Model):
     def __str__(self):
         return self.name
 
+
 class Chapter(models.Model):
     """Create database model of Chapter"""
     title = models.CharField(max_length=200)
@@ -69,6 +71,7 @@ class Chapter(models.Model):
     course = models.ForeignKey(Course, related_name='chapters',on_delete=models.CASCADE,default=None)
     def __str__(self):
         return self.title
+
 
 class Video(models.Model):
     """Create database model of Video"""
@@ -81,30 +84,30 @@ class Video(models.Model):
 
 
 class Cart(models.Model):
+    """represents a Cart which belongs to a user"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class CartItem(models.Model):
+    """instances of a Cart model"""
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    course_price = models.DecimalField(max_digits=6, decimal_places=2,default=1.0)
-    total_price = models.DecimalField(max_digits=6, decimal_places=2,default=1.0)
 
     class Meta:
-        unique_together = ('course', 'user')
-
-    def __str__(self):
-        return self.user.username
+        unique_together = ('course', 'cart')
 
 
 class Order(models.Model):
+    """represents an order made by a user, and has a total and a creation date"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.BooleanField(db_index=True, default=0)
-    total = models.DecimalField(max_digits=6,decimal_places=2)
-    date = models.DateField(db_index=True, auto_now_add=True)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True , null=True)
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    """Objects of the Order Model"""
+    order = models.ForeignKey(Order, related_name='orders', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    # course_price = models.DecimalField(max_digits=6, decimal_places=2)
-    # total_price = models.DecimalField(max_digits=6, decimal_places=2)
 
     class Meta:
         unique_together = ('order', 'course')
