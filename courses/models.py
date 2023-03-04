@@ -1,11 +1,9 @@
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from rest_framework.authtoken.models import Token
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator , MaxValueValidator
 import datetime
+
+
 # Create your models here.
 class Category(models.Model):
     title = models.CharField(max_length=255, db_index=True)
@@ -81,36 +79,6 @@ class Video(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.PROTECT)
     def __str__(self):
         return self.title
-
-
-class Cart(models.Model):
-    """represents a Cart which belongs to a user"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-
-class CartItem(models.Model):
-    """instances of a Cart model"""
-    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('course', 'cart')
-
-
-class Order(models.Model):
-    """represents an order made by a user, and has a total and a creation date"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True , null=True)
-
-
-class OrderItem(models.Model):
-    """Objects of the Order Model"""
-    order = models.ForeignKey(Order, related_name='orders', on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('order', 'course')
 
 
 class FAQ(models.Model):

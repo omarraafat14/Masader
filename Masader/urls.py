@@ -8,6 +8,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('api-auth/', include('rest_framework.urls')),
     path('api/' , include('courses.urls')),
+    path('cart/' , include('cart.urls')),
+    path('users/' , include('users.urls')),
+    path('orders/' , include('orders.urls')),
     
     # User registration and token generation endpoints
     path('auth/', include('djoser.urls')),

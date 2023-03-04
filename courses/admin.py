@@ -30,7 +30,3 @@ admin.site.register(Video)
 
 # Register FAQ model.
 admin.site.register(FAQ)
-
-admin.site.register(Cart)
-admin.site.register(Order)
-admin.site.register(OrderItem)

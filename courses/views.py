@@ -6,9 +6,9 @@ from .models import *
 from .serializers import *
 from .permissions import *
 from .throttles import *
-
+from cart.models import Cart, CartItem
 from django.contrib.auth.models import User
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
@@ -198,95 +198,3 @@ class PaymentView(APIView):
         # Return the payment key
         return redirect(f'https://accept.paymob.com/api/acceptance/iframes/730926?payment_token={payment_key}')
         # return Response({"payment_key": payment_key})
-
-
-
-class CartView(generics.RetrieveUpdateAPIView):
-    """represent a single model instance."""
-    serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        """Returns an object instance that should be used for detail views."""
-        cart, created = Cart.objects.get_or_create(user=self.request.user)
-        return cart
-    
-
-
-class AddToCartView(generics.CreateAPIView):
-    serializer_class = CartSerializer
-    permission_classes = [IsStudent]
-
-    def post(self, request, *arg, **kwargs):
-        course_id = request.data.get('course_id')
-        course = get_object_or_404(Course, id=course_id)
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, course=course)
-        cart_item.save()
-        serializer = CartItemSerializer(cart_item)
-        return Response(serializer.data)
-
-    def delete(self, request, *arg, **kwargs):
-        if request.data['course']:
-            serialized_item = CartSerializer(data=request.data)
-            serialized_item.is_valid(raise_exception=True)
-            course = request.data['course']
-            cart = get_object_or_404(Cart, user=request.user, course=course )
-            cart.delete()
-            return Response(status=status.HTTP_200_OK, data={'message':'course removed from cart'})
-        else:
-            Cart.objects.filter(user=request.user).delete()
-            return Response(status=status.HTTP_201_CREATED, data={'message':'All courses removed from cart'})
-
-
-class CreateOrderView(generics.CreateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [IsStudent]
-    throttle_classes = [UserRateThrottle,AnonRateThrottle]
-
-    def post(self, request, *args, **kwargs):
-        cart = get_object_or_404(Cart, user=request.user)
-        order = Order(user=request.user, total=0)
-        order.save()
-        order_items = []
-        total = 0
-        for cart_item in cart.items.all():
-            order_item = OrderItem(
-                order=order,
-                course=cart_item.course,
-            )
-            order_items.append(order_item)
-            total += order_item.course.price
-        order.total = total
-        order.save()
-        OrderItem.objects.bulk_create(order_items)  # creates multiple objects of the OrderItem in a snigle query
-        cart.items.all().delete()
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
-
-class DeleteOrderView(generics.UpdateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [IsStudent]
-    throttle_classes = [UserRateThrottle,AnonRateThrottle]
-
-    def delete(self, request, *args, **kwargs):
-        order = Order.objects.get(pk=self.kwargs['pk'])
-        order_number = str(order.id)
-        order.delete()
-        return Response(status=200, data={'message':'Order #{} was deleted'.format(order_number)})
-
-
-class OrderListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
-    # queryset = OrderItem.objects.all()
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [UserRateThrottle,AnonRateThrottle]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.groups.filter(name='Student').exists():
-            return Order.objects.all().filter(user = user)
-        elif user.groups.filter(name='Instructor').exists():
-            return Order.objects.all().filter(user = user)
-        else:
-            return Order.objects.all()

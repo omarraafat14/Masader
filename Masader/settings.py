@@ -26,11 +26,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Local apps
+    'courses',
+    'cart',
+    'users',
+    'orders',
+
+    # Third-party apps
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
-    # 'djangorestframework_simplejwt',
-    'courses.apps.CoursesConfig',
+    'rest_framework_simplejwt',
 ]
 
 REST_FRAMEWORK = {
@@ -56,7 +63,7 @@ REST_FRAMEWORK = {
     
     # Define Pagination number
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 2,
+    'PAGE_SIZE': 4,
 
     # Define Throttle classes
     'DEFAULT_THROTTLE_CLASSES': [
@@ -150,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Cairo'
 
 USE_I18N = True
 
